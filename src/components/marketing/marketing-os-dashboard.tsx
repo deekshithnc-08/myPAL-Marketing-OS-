@@ -39,6 +39,401 @@ const pieColors = ["#f97316", "#0f172a", "#64748b", "#fb923c"];
 const spendMax = Math.max(...spendTrend.flatMap((item) => [item.budget, item.spend]));
 const funnelMax = Math.max(...campaignFunnel.map((item) => item.value));
 const sprintTotal = sprintProgress.reduce((total, item) => total + item.value, 0);
+type SidebarSection = (typeof sidebarModules)[number][0];
+
+const moduleWorkspace: Record<
+  SidebarSection,
+  {
+    action: string;
+    description: string;
+    metrics: Array<{ label: string; value: string; tone: "default" | "success" | "warning" | "danger" }>;
+    rows: Array<{ name: string; owner: string; status: string; due: string }>;
+    stages: string[];
+  }
+> = {
+  "AI Studio": {
+    action: "Generate",
+    description: "Campaign ideas, ad copy, reports, sprint plans, meeting summaries, and budget analysis.",
+    metrics: [
+      { label: "Prompts", value: "128", tone: "success" },
+      { label: "Agents", value: "9", tone: "warning" },
+      { label: "Reports", value: "34", tone: "default" },
+    ],
+    rows: [
+      { name: "Generate July campaign plan", owner: "AI Assistant", status: "Ready", due: "Today" },
+      { name: "Summarize B2B webinar notes", owner: "Sales Team", status: "Queued", due: "Jul 8" },
+      { name: "Optimize BFSI ad copy", owner: "Growth", status: "Draft", due: "Jul 9" },
+    ],
+    stages: ["Prompt", "Generate", "Review", "Ship"],
+  },
+  "Analytics": {
+    action: "Open report",
+    description: "Campaign ROI, spend analysis, lead funnel, content performance, vendor performance, and productivity.",
+    metrics: [
+      { label: "ROI", value: "4.8x", tone: "success" },
+      { label: "CPL", value: "₹146", tone: "success" },
+      { label: "Dashboards", value: "12", tone: "default" },
+    ],
+    rows: [
+      { name: "Campaign ROI dashboard", owner: "Marketing Director", status: "Live", due: "Now" },
+      { name: "B2B funnel report", owner: "B2B Team", status: "Updated", due: "Today" },
+      { name: "Vendor performance", owner: "Finance Ops", status: "Review", due: "Jul 11" },
+    ],
+    stages: ["Collect", "Model", "Visualize", "Export"],
+  },
+  "Automation Center": {
+    action: "Deploy workflow",
+    description: "Rules for overdue tasks, vendor payments, budget alerts, campaign reports, sprint retrospectives, and lead assignment.",
+    metrics: [
+      { label: "Workflows", value: "18", tone: "success" },
+      { label: "Warnings", value: "3", tone: "warning" },
+      { label: "Runs", value: "1.8k", tone: "default" },
+    ],
+    rows: [
+      { name: "Budget exceeds 90%", owner: "Finance Ops", status: "Active", due: "Always" },
+      { name: "Campaign ends, create report", owner: "AI Systems", status: "Active", due: "Always" },
+      { name: "New lead assignment", owner: "Sales Team", status: "Testing", due: "Jul 8" },
+    ],
+    stages: ["Trigger", "Condition", "Action", "Log"],
+  },
+  "B2B Marketing": {
+    action: "Add company",
+    description: "Companies, leads, pipeline, meetings, proposals, demos, negotiation, won/lost CRM, and reminders.",
+    metrics: [
+      { label: "Pipeline", value: "₹1.8Cr", tone: "success" },
+      { label: "Leads", value: "142", tone: "default" },
+      { label: "Meetings", value: "18", tone: "warning" },
+    ],
+    rows: [
+      { name: "BFSI partner webinar", owner: "B2B Team", status: "Demo", due: "Jul 12" },
+      { name: "Enterprise LMS proposal", owner: "Sales Team", status: "Proposal", due: "Jul 9" },
+      { name: "HR tech outreach", owner: "Marketing Manager", status: "Negotiation", due: "Jul 15" },
+    ],
+    stages: ["Lead", "Meeting", "Proposal", "Won"],
+  },
+  "Calendar": {
+    action: "Create event",
+    description: "Marketing calendar for launches, content publishing, meetings, vendor deliveries, college visits, and deadlines.",
+    metrics: [
+      { label: "This week", value: "24", tone: "default" },
+      { label: "Launches", value: "3", tone: "warning" },
+      { label: "Blocked", value: "2", tone: "danger" },
+    ],
+    rows: [
+      { name: "Admissions Campaign Wave 3", owner: "Growth", status: "Launch", due: "Jul 10" },
+      { name: "July newsletter publish", owner: "Content Team", status: "Scheduled", due: "Jul 12" },
+      { name: "BFSI B2B webinar", owner: "B2B Team", status: "Planning", due: "Jul 16" },
+    ],
+    stages: ["Today", "This Week", "Upcoming", "Done"],
+  },
+  "Campaign Expenses": {
+    action: "Add expense",
+    description: "Track Meta Ads, Google Ads, printing, travel, events, food, vendors, photography, video, software, and office spend.",
+    metrics: [
+      { label: "Monthly", value: "₹18.7L", tone: "warning" },
+      { label: "Pending", value: "₹2.1L", tone: "danger" },
+      { label: "Approved", value: "81%", tone: "success" },
+    ],
+    rows: [
+      { name: "Meta Ads July", owner: "Growth", status: "Approved", due: "₹6.2L" },
+      { name: "College visit travel", owner: "Intern", status: "Review", due: "₹48k" },
+      { name: "Video production", owner: "Video Team", status: "Pending", due: "₹1.4L" },
+    ],
+    stages: ["Draft", "Review", "Approved", "Paid"],
+  },
+  "Campaigns": {
+    action: "Create campaign",
+    description: "Digital, offline, brand, performance, WhatsApp, SMS, email, college visits, B2B, and events with ROI.",
+    metrics: [
+      { label: "Active", value: "12", tone: "success" },
+      { label: "ROI", value: "4.8x", tone: "success" },
+      { label: "At risk", value: "2", tone: "warning" },
+    ],
+    rows: [
+      { name: "Admissions Campaign Wave 3", owner: "Growth", status: "Active", due: "Jul 10" },
+      { name: "BFSI Launch", owner: "Marketing Director", status: "Review", due: "Jul 16" },
+      { name: "WhatsApp reactivation", owner: "Marketing Manager", status: "Draft", due: "Jul 9" },
+    ],
+    stages: ["Planning", "Creative", "Live", "Report"],
+  },
+  "College Visits": {
+    action: "Plan visit",
+    description: "College database, visits, seminars, approvals, faculty contacts, photos, reports, lead count, expenses, and ROI.",
+    metrics: [
+      { label: "Visits", value: "18", tone: "success" },
+      { label: "Leads", value: "2.4k", tone: "success" },
+      { label: "Approvals", value: "5", tone: "warning" },
+    ],
+    rows: [
+      { name: "RV College seminar", owner: "College Team", status: "Approved", due: "Jul 11" },
+      { name: "PES faculty meeting", owner: "Marketing Manager", status: "Pending", due: "Jul 13" },
+      { name: "Lead report upload", owner: "Intern", status: "Review", due: "Today" },
+    ],
+    stages: ["Database", "Approval", "Visit", "Report"],
+  },
+  "Content Planner": {
+    action: "Create content",
+    description: "Monthly, weekly, and social planner for Instagram, LinkedIn, Facebook, YouTube, newsletters, blogs, reels, and podcasts.",
+    metrics: [
+      { label: "Queued", value: "31", tone: "default" },
+      { label: "Approval", value: "9", tone: "warning" },
+      { label: "Published", value: "76", tone: "success" },
+    ],
+    rows: [
+      { name: "Admissions carousel", owner: "Content Team", status: "Design", due: "Today" },
+      { name: "BFSI LinkedIn post", owner: "Content Team", status: "Approval", due: "Jul 8" },
+      { name: "Podcast short clips", owner: "Video Team", status: "Editing", due: "Jul 10" },
+    ],
+    stages: ["Idea", "Writing", "Design", "Published"],
+  },
+  "Creative Requests": {
+    action: "New request",
+    description: "Design, video, editing, photography, approval workflow, revisions, priority, and expected delivery.",
+    metrics: [
+      { label: "Open", value: "22", tone: "warning" },
+      { label: "Urgent", value: "5", tone: "danger" },
+      { label: "Done", value: "64", tone: "success" },
+    ],
+    rows: [
+      { name: "BFSI landing page hero", owner: "Design Team", status: "Review", due: "Today" },
+      { name: "Admissions reel edit", owner: "Video Team", status: "Revision", due: "Jul 8" },
+      { name: "College visit photo set", owner: "Intern", status: "Upload", due: "Today" },
+    ],
+    stages: ["Request", "Work", "Review", "Complete"],
+  },
+  Dashboard: {
+    action: "Quick Add",
+    description: "Executive dashboard across tasks, campaigns, sprints, budgets, leads, content, vendors, reports, and AI suggestions.",
+    metrics: [
+      { label: "Tasks", value: "84", tone: "default" },
+      { label: "Campaigns", value: "12", tone: "success" },
+      { label: "Alerts", value: "6", tone: "warning" },
+    ],
+    rows: todaysTasks.map((task) => ({ name: task.title, owner: task.owner, status: task.priority, due: task.due })),
+    stages: ["Today", "Campaigns", "Budget", "AI"],
+  },
+  Events: {
+    action: "Create event",
+    description: "Seminars, launches, webinars, offline activations, approvals, vendors, attendance, photos, reports, and ROI.",
+    metrics: [
+      { label: "Upcoming", value: "7", tone: "warning" },
+      { label: "Leads", value: "1.1k", tone: "success" },
+      { label: "Budget", value: "₹3.2L", tone: "default" },
+    ],
+    rows: [
+      { name: "BFSI webinar", owner: "B2B Team", status: "Planning", due: "Jul 16" },
+      { name: "Admissions offline booth", owner: "Growth", status: "Vendor", due: "Jul 18" },
+      { name: "Podcast live session", owner: "Content Team", status: "Creative", due: "Jul 20" },
+    ],
+    stages: ["Plan", "Vendor", "Live", "Report"],
+  },
+  Files: {
+    action: "Upload",
+    description: "Images, videos, invoices, purchase orders, contracts, PDF, Word, Excel, and version history with Supabase Storage.",
+    metrics: [
+      { label: "Assets", value: "624", tone: "success" },
+      { label: "Storage", value: "38GB", tone: "default" },
+      { label: "Needs tags", value: "47", tone: "warning" },
+    ],
+    rows: [
+      { name: "BFSI launch assets", owner: "Design Team", status: "Version 4", due: "2.4GB" },
+      { name: "Vendor contracts", owner: "Finance Ops", status: "Signed", due: "18 files" },
+      { name: "Newsletter archive", owner: "Content Team", status: "Synced", due: "42 files" },
+    ],
+    stages: ["Upload", "Tag", "Review", "Archive"],
+  },
+  "Knowledge Base": {
+    action: "Add SOP",
+    description: "SOPs, playbooks, prompt library, templates, vendor documents, brand guidelines, training, and meeting notes.",
+    metrics: [
+      { label: "Docs", value: "214", tone: "success" },
+      { label: "Playbooks", value: "18", tone: "default" },
+      { label: "Drafts", value: "11", tone: "warning" },
+    ],
+    rows: [
+      { name: "Campaign launch SOP", owner: "Marketing Ops", status: "Published", due: "v3" },
+      { name: "Brand guidelines", owner: "Design Team", status: "Review", due: "Jul 12" },
+      { name: "Prompt library", owner: "AI Systems", status: "Live", due: "128 prompts" },
+    ],
+    stages: ["Draft", "Review", "Publish", "Train"],
+  },
+  "Lead Tracker": {
+    action: "Add lead",
+    description: "Lead source, landing page, campaign, status, owner, follow-up, notes, documents, conversion, and analytics.",
+    metrics: [
+      { label: "New", value: "418", tone: "warning" },
+      { label: "Qualified", value: "164", tone: "success" },
+      { label: "Won", value: "38", tone: "success" },
+    ],
+    rows: [
+      { name: "Admissions landing page", owner: "Sales Team", status: "Qualified", due: "Today" },
+      { name: "LinkedIn B2B lead", owner: "B2B Team", status: "Demo", due: "Jul 9" },
+      { name: "College seminar batch", owner: "Intern", status: "New", due: "Today" },
+    ],
+    stages: ["New", "Contacted", "Qualified", "Won"],
+  },
+  "Marketing Budget": {
+    action: "Add budget",
+    description: "Annual, quarterly, monthly, campaign, and department budgets with forecasts, actual spend, and charts.",
+    metrics: [
+      { label: "Monthly", value: "₹24L", tone: "default" },
+      { label: "Used", value: "67%", tone: "warning" },
+      { label: "Forecast", value: "₹22L", tone: "success" },
+    ],
+    rows: [
+      { name: "Performance marketing", owner: "Growth", status: "67% used", due: "₹14.2L" },
+      { name: "Events and colleges", owner: "Marketing Manager", status: "42% used", due: "₹3.8L" },
+      { name: "Creative vendors", owner: "Finance Ops", status: "Review", due: "₹4.8L" },
+    ],
+    stages: ["Allocated", "Committed", "Spent", "Forecast"],
+  },
+  "myPAL Pulze": {
+    action: "Create agent",
+    description: "Automation projects, internal tools, AI agents, prompt library, newsletter, podcast, website automation, workflow builder, logs, and API keys.",
+    metrics: [
+      { label: "Agents", value: "9", tone: "success" },
+      { label: "Workflows", value: "18", tone: "success" },
+      { label: "Errors", value: "3", tone: "warning" },
+    ],
+    rows: [
+      { name: "Newsletter automation", owner: "AI Systems", status: "Running", due: "Daily" },
+      { name: "Podcast clipping agent", owner: "Video Team", status: "Testing", due: "Jul 8" },
+      { name: "Website content sync", owner: "Content Team", status: "Paused", due: "Review" },
+    ],
+    stages: ["Build", "Test", "Run", "Observe"],
+  },
+  Newsletter: {
+    action: "Plan issue",
+    description: "Planning, content, review, approval, publishing, subscribers, analytics, automation, and archive.",
+    metrics: [
+      { label: "Subscribers", value: "48k", tone: "success" },
+      { label: "Open rate", value: "38%", tone: "success" },
+      { label: "Drafts", value: "4", tone: "warning" },
+    ],
+    rows: [
+      { name: "July admissions issue", owner: "Content Team", status: "Approval", due: "Jul 12" },
+      { name: "Founder note", owner: "Marketing Director", status: "Draft", due: "Today" },
+      { name: "Automation QA", owner: "AI Systems", status: "Testing", due: "Jul 9" },
+    ],
+    stages: ["Plan", "Write", "Approve", "Publish"],
+  },
+  Projects: {
+    action: "New project",
+    description: "Marketing initiatives with objectives, timelines, tasks, files, campaigns, budget, approvals, milestones, and reports.",
+    metrics: [
+      { label: "Active", value: "16", tone: "success" },
+      { label: "Delayed", value: "3", tone: "warning" },
+      { label: "Milestones", value: "42", tone: "default" },
+    ],
+    rows: [
+      { name: "Admissions Campaign", owner: "Marketing Manager", status: "Active", due: "Jul 30" },
+      { name: "BFSI Launch", owner: "Marketing Director", status: "Review", due: "Jul 16" },
+      { name: "Podcast Automation", owner: "AI Systems", status: "Build", due: "Jul 12" },
+    ],
+    stages: ["Objectives", "Tasks", "Approvals", "Reports"],
+  },
+  "Purchase Orders": {
+    action: "Create PO",
+    description: "Vendor, items, quantity, amount, GST, attachments, approval flow, payment status, invoice upload, and delivery status.",
+    metrics: [
+      { label: "Open", value: "19", tone: "warning" },
+      { label: "Approved", value: "42", tone: "success" },
+      { label: "Pending pay", value: "₹4.8L", tone: "danger" },
+    ],
+    rows: [
+      { name: "PO-1048 video production", owner: "Finance Ops", status: "Invoice", due: "₹1.4L" },
+      { name: "PO-1051 college booth", owner: "Marketing Manager", status: "Approval", due: "₹82k" },
+      { name: "PO-1054 ad creatives", owner: "Design Team", status: "Delivered", due: "₹36k" },
+    ],
+    stages: ["Draft", "Approval", "Delivery", "Payment"],
+  },
+  Reports: {
+    action: "Export PDF",
+    description: "Executive reports, campaign reports, task reports, sprint reports, expense reports, vendor reports, and ROI reports.",
+    metrics: [
+      { label: "Generated", value: "34", tone: "success" },
+      { label: "Scheduled", value: "8", tone: "default" },
+      { label: "Pending", value: "5", tone: "warning" },
+    ],
+    rows: [
+      { name: "June executive report", owner: "Marketing Director", status: "Ready", due: "PDF" },
+      { name: "BFSI campaign report", owner: "Growth", status: "Draft", due: "Jul 17" },
+      { name: "Vendor payments report", owner: "Finance Ops", status: "Review", due: "Today" },
+    ],
+    stages: ["Collect", "Analyze", "Review", "Export"],
+  },
+  Settings: {
+    action: "Manage",
+    description: "Workspaces, roles, permissions, notifications, storage buckets, integrations, API keys, and Vercel deployment settings.",
+    metrics: [
+      { label: "Roles", value: "10", tone: "default" },
+      { label: "Integrations", value: "6", tone: "success" },
+      { label: "Alerts", value: "2", tone: "warning" },
+    ],
+    rows: [
+      { name: "RBAC permissions", owner: "Super Admin", status: "Configured", due: "10 roles" },
+      { name: "Supabase Storage", owner: "Admin", status: "Ready", due: "4 buckets" },
+      { name: "WhatsApp API", owner: "AI Systems", status: "Ready", due: "Keys" },
+    ],
+    stages: ["Workspace", "RBAC", "Integrations", "Audit"],
+  },
+  "Social Media": {
+    action: "Schedule post",
+    description: "Instagram, LinkedIn, Facebook, YouTube, reels, captions, hashtags, approval, publishing, and performance.",
+    metrics: [
+      { label: "Scheduled", value: "48", tone: "success" },
+      { label: "Approvals", value: "7", tone: "warning" },
+      { label: "Reach", value: "1.2M", tone: "success" },
+    ],
+    rows: [
+      { name: "Admissions reel", owner: "Video Team", status: "Editing", due: "Jul 9" },
+      { name: "BFSI carousel", owner: "Design Team", status: "Approval", due: "Today" },
+      { name: "Founder LinkedIn post", owner: "Content Team", status: "Scheduled", due: "Jul 8" },
+    ],
+    stages: ["Idea", "Creative", "Approval", "Published"],
+  },
+  Sprints: {
+    action: "Plan sprint",
+    description: "Marketing sprints with 2-week, weekly, daily cadences, velocity, burndown, capacity, goals, planning, and retrospectives.",
+    metrics: [
+      { label: "Progress", value: "71%", tone: "success" },
+      { label: "Capacity", value: "88%", tone: "warning" },
+      { label: "Blocked", value: "4", tone: "danger" },
+    ],
+    rows: [
+      { name: "Sprint 14 creative approvals", owner: "Marketing Manager", status: "Review", due: "Today" },
+      { name: "Daily sprint standup", owner: "Marketing Ops", status: "Done", due: "09:30" },
+      { name: "AI sprint summary", owner: "AI Systems", status: "Ready", due: "Friday" },
+    ],
+    stages: ["Goals", "Active", "Review", "Retro"],
+  },
+  Tasks: {
+    action: "Create task",
+    description: "Task name, description, priority, assignee, due date, status, subtasks, checklist, attachments, dependencies, comments, and labels.",
+    metrics: [
+      { label: "Open", value: "84", tone: "warning" },
+      { label: "Done", value: "312", tone: "success" },
+      { label: "Overdue", value: "6", tone: "danger" },
+    ],
+    rows: todaysTasks.map((task) => ({ name: task.title, owner: task.owner, status: task.priority, due: task.due })),
+    stages: ["Todo", "In Progress", "Review", "Done"],
+  },
+  "Vendor Management": {
+    action: "Add vendor",
+    description: "Vendor profiles with company, category, contacts, GST, PAN, UPI, bank details, services, contracts, invoices, terms, and outstanding amount.",
+    metrics: [
+      { label: "Vendors", value: "58", tone: "success" },
+      { label: "Outstanding", value: "₹4.8L", tone: "warning" },
+      { label: "Contracts", value: "41", tone: "default" },
+    ],
+    rows: [
+      { name: "PixelFrame Studios", owner: "Video Team", status: "Invoice due", due: "₹1.4L" },
+      { name: "Campus Connect", owner: "College Team", status: "Active", due: "Jul 15" },
+      { name: "AdOps Partner", owner: "Growth", status: "Review", due: "Monthly" },
+    ],
+    stages: ["Profile", "Contract", "PO", "Payment"],
+  },
+};
 
 function SpendChart() {
   const width = 480;
@@ -141,11 +536,138 @@ function SprintDonut() {
   );
 }
 
+function ModuleWorkspace({
+  activeSection,
+  onBack,
+}: {
+  activeSection: SidebarSection;
+  onBack: () => void;
+}) {
+  const workspace = moduleWorkspace[activeSection];
+
+  return (
+    <section className="space-y-5 p-4 sm:p-6">
+      <Card className="overflow-hidden">
+        <div className="grid gap-0 xl:grid-cols-[1.25fr_0.75fr]">
+          <div className="p-5 sm:p-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="warning">{activeSection}</Badge>
+              <Badge>Connected module</Badge>
+            </div>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">{activeSection}</h2>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)] sm:text-base">
+              {workspace.description}
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button>
+                <Plus className="h-4 w-4" />
+                {workspace.action}
+              </Button>
+              <Button variant="outline">
+                <Search className="h-4 w-4" />
+                Search
+              </Button>
+              <Button variant="outline">
+                <FileDown className="h-4 w-4" />
+                Export
+              </Button>
+              <Button variant="ghost" onClick={onBack}>
+                Dashboard
+              </Button>
+            </div>
+          </div>
+          <div className="border-t border-[var(--border)] bg-slate-950 p-5 text-white xl:border-l xl:border-t-0">
+            <p className="text-sm font-semibold">AI suggestions</p>
+            <div className="mt-4 space-y-3">
+              {aiSuggestions.slice(0, 3).map((suggestion) => (
+                <div key={suggestion} className="rounded-lg border border-white/10 bg-white/7 p-3 text-sm leading-5 text-slate-100">
+                  {suggestion}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        {workspace.metrics.map((metric) => (
+          <Card key={metric.label}>
+            <CardContent className="p-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">{metric.label}</p>
+              <div className="mt-3 flex items-end justify-between gap-2">
+                <p className="text-2xl font-bold">{metric.value}</p>
+                <Badge tone={metric.tone}>Live</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>{activeSection} Work Queue</CardTitle>
+            <Badge>{workspace.rows.length} items</Badge>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full min-w-[620px] border-separate border-spacing-0 text-sm">
+              <thead>
+                <tr className="text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+                  <th className="border-b border-[var(--border)] pb-3 font-medium">Name</th>
+                  <th className="border-b border-[var(--border)] pb-3 font-medium">Owner</th>
+                  <th className="border-b border-[var(--border)] pb-3 font-medium">Status</th>
+                  <th className="border-b border-[var(--border)] pb-3 text-right font-medium">Due / Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {workspace.rows.map((row) => (
+                  <tr key={row.name}>
+                    <td className="border-b border-[var(--border)] py-3 font-medium">{row.name}</td>
+                    <td className="border-b border-[var(--border)] py-3 text-[var(--muted)]">{row.owner}</td>
+                    <td className="border-b border-[var(--border)] py-3">
+                      <Badge tone={row.status.includes("Pending") || row.status.includes("Urgent") ? "warning" : "default"}>
+                        {row.status}
+                      </Badge>
+                    </td>
+                    <td className="border-b border-[var(--border)] py-3 text-right text-[var(--muted)]">{row.due}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Workflow</CardTitle>
+            <Badge tone="success">Operational</Badge>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {workspace.stages.map((stage, index) => (
+              <div key={stage} className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-white/45 p-3 dark:bg-white/5">
+                <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-orange-500/12 text-sm font-bold text-orange-600">
+                  {index + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{stage}</p>
+                  <p className="text-xs text-[var(--muted)]">Connected to comments, files, alerts, activity logs, and AI summaries.</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-orange-500" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </section>
+  );
+}
+
 export function MarketingOSDashboard() {
   const [dark, setDark] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [role, setRole] = useState<Role>("Marketing Director");
   const [query, setQuery] = useState("");
+  const [activeSection, setActiveSection] = useState<SidebarSection>("Dashboard");
 
   const filteredModules = useMemo(() => {
     const normalized = query.toLowerCase().trim();
@@ -177,13 +699,21 @@ export function MarketingOSDashboard() {
           </div>
 
           <nav className="scrollbar-thin flex-1 overflow-y-auto px-3 py-4">
-            {sidebarModules.map(([name, Icon], index) => (
+            {sidebarModules.map(([name, Icon]) => (
               <button
                 key={name}
+                onClick={() => {
+                  setActiveSection(name);
+                  setQuery("");
+                  if (window.innerWidth < 1024) {
+                    setSidebarOpen(false);
+                  }
+                }}
                 className={cn(
                   "mb-1 flex h-10 w-full items-center gap-3 rounded-md px-3 text-left text-sm text-slate-600 transition hover:bg-orange-500/10 hover:text-orange-700 dark:text-slate-300 dark:hover:text-orange-200",
-                  index === 0 && "bg-orange-500/12 font-semibold text-orange-700 dark:text-orange-200",
+                  activeSection === name && "bg-orange-500/12 font-semibold text-orange-700 dark:text-orange-200",
                 )}
+                type="button"
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className={cn("truncate", !sidebarOpen && "lg:hidden")}>{name}</span>
@@ -261,6 +791,7 @@ export function MarketingOSDashboard() {
             </div>
           </header>
 
+          {activeSection === "Dashboard" ? (
           <section className="space-y-5 p-4 sm:p-6">
             <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
               <Card className="overflow-hidden">
@@ -495,6 +1026,9 @@ export function MarketingOSDashboard() {
               </Card>
             </div>
           </section>
+          ) : (
+            <ModuleWorkspace activeSection={activeSection} onBack={() => setActiveSection("Dashboard")} />
+          )}
         </main>
       </div>
     </div>
