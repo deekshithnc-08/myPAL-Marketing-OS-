@@ -1,0 +1,17 @@
+{
+  "name": "myPAL Marketing OS",
+  "short_name": "Marketing OS",
+  "description": "Everything Marketing. One Platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#f97316",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
