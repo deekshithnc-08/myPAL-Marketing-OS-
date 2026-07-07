@@ -1,21 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart as RePieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import {
   Bell,
   Bookmark,
@@ -51,6 +36,110 @@ import { roles, type Role, permissionsFor } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
 
 const pieColors = ["#f97316", "#0f172a", "#64748b", "#fb923c"];
+const spendMax = Math.max(...spendTrend.flatMap((item) => [item.budget, item.spend]));
+const funnelMax = Math.max(...campaignFunnel.map((item) => item.value));
+const sprintTotal = sprintProgress.reduce((total, item) => total + item.value, 0);
+
+function SpendChart() {
+  const width = 480;
+  const height = 220;
+  const padding = 24;
+  const xStep = (width - padding * 2) / (spendTrend.length - 1);
+  const toY = (value: number) => height - padding - (value / spendMax) * (height - padding * 2);
+  const spendPoints = spendTrend.map((item, index) => `${padding + index * xStep},${toY(item.spend)}`).join(" ");
+  const budgetPoints = spendTrend.map((item, index) => `${padding + index * xStep},${toY(item.budget)}`).join(" ");
+  const areaPath = `M ${spendTrend
+    .map((item, index) => `${padding + index * xStep} ${toY(item.spend)}`)
+    .join(" L ")} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z`;
+
+  return (
+    <div className="h-72">
+      <svg className="h-full w-full" role="img" viewBox={`0 0 ${width} ${height}`}>
+        <defs>
+          <linearGradient id="spend-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#f97316" stopOpacity="0.34" />
+            <stop offset="100%" stopColor="#f97316" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75, 1].map((line) => (
+          <line
+            key={line}
+            stroke="rgba(148,163,184,.22)"
+            x1={padding}
+            x2={width - padding}
+            y1={padding + (height - padding * 2) * line}
+            y2={padding + (height - padding * 2) * line}
+          />
+        ))}
+        <path d={areaPath} fill="url(#spend-fill)" />
+        <polyline fill="none" points={budgetPoints} stroke="#64748b" strokeDasharray="6 6" strokeWidth="2" />
+        <polyline fill="none" points={spendPoints} stroke="#f97316" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+        {spendTrend.map((item, index) => (
+          <g key={item.month}>
+            <circle cx={padding + index * xStep} cy={toY(item.spend)} fill="#f97316" r="4" />
+            <text fill="currentColor" fontSize="11" opacity="0.62" textAnchor="middle" x={padding + index * xStep} y={height - 5}>
+              {item.month}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function FunnelChart() {
+  return (
+    <div className="flex h-72 flex-col justify-center gap-3">
+      {campaignFunnel.map((stage) => (
+        <div key={stage.stage} className="grid grid-cols-[82px_1fr_64px] items-center gap-3 text-sm">
+          <span className="truncate text-[var(--muted)]">{stage.stage}</span>
+          <div className="h-8 rounded-md bg-slate-200/70 p-1 dark:bg-slate-800">
+            <div
+              className="h-full rounded bg-[var(--brand)]"
+              style={{ width: `${Math.max(8, (stage.value / funnelMax) * 100)}%` }}
+            />
+          </div>
+          <span className="text-right font-semibold">{stage.value.toLocaleString("en-IN")}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SprintDonut() {
+  let cursor = 0;
+  const gradient = sprintProgress
+    .map((item, index) => {
+      const start = cursor;
+      cursor += (item.value / sprintTotal) * 100;
+      return `${pieColors[index % pieColors.length]} ${start}% ${cursor}%`;
+    })
+    .join(", ");
+
+  return (
+    <div className="grid h-72 place-items-center">
+      <div
+        className="grid h-44 w-44 place-items-center rounded-full"
+        style={{ background: `conic-gradient(${gradient})` }}
+      >
+        <div className="grid h-28 w-28 place-items-center rounded-full bg-white text-center shadow-inner dark:bg-slate-950">
+          <div>
+            <p className="text-3xl font-bold">71%</p>
+            <p className="text-xs text-[var(--muted)]">complete</p>
+          </div>
+        </div>
+      </div>
+      <div className="grid w-full grid-cols-2 gap-2">
+        {sprintProgress.map((item, index) => (
+          <div key={item.name} className="flex items-center gap-2 text-xs">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: pieColors[index % pieColors.length] }} />
+            <span className="truncate text-[var(--muted)]">{item.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function MarketingOSDashboard() {
   const [dark, setDark] = useState(false);
@@ -173,12 +262,7 @@ export function MarketingOSDashboard() {
           </header>
 
           <section className="space-y-5 p-4 sm:p-6">
-            <motion.div
-              animate={{ opacity: 1, y: 0 }}
-              className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]"
-              initial={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.28 }}
-            >
+            <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
               <Card className="overflow-hidden">
                 <div className="grid gap-0 lg:grid-cols-[1.1fr_0.9fr]">
                   <div className="p-5 sm:p-6">
@@ -235,7 +319,7 @@ export function MarketingOSDashboard() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
               {executiveMetrics.map((metric) => (
@@ -257,23 +341,8 @@ export function MarketingOSDashboard() {
                   <CardTitle>Monthly Spend & Leads</CardTitle>
                   <Badge tone="success">ROI improving</Badge>
                 </CardHeader>
-                <CardContent className="h-72">
-                  <ResponsiveContainer height="100%" width="100%">
-                    <AreaChart data={spendTrend}>
-                      <defs>
-                        <linearGradient id="spend" x1="0" x2="0" y1="0" y2="1">
-                          <stop offset="5%" stopColor="#f97316" stopOpacity={0.45} />
-                          <stop offset="95%" stopColor="#f97316" stopOpacity={0.02} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke="rgba(148,163,184,.22)" vertical={false} />
-                      <XAxis dataKey="month" tickLine={false} />
-                      <YAxis tickLine={false} width={32} />
-                      <Tooltip />
-                      <Area dataKey="spend" fill="url(#spend)" stroke="#f97316" strokeWidth={3} type="monotone" />
-                      <Area dataKey="budget" fill="transparent" stroke="#64748b" strokeDasharray="5 5" strokeWidth={2} type="monotone" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                <CardContent>
+                  <SpendChart />
                 </CardContent>
               </Card>
 
@@ -282,16 +351,8 @@ export function MarketingOSDashboard() {
                   <CardTitle>Lead Funnel</CardTitle>
                   <Badge>Campaign analytics</Badge>
                 </CardHeader>
-                <CardContent className="h-72">
-                  <ResponsiveContainer height="100%" width="100%">
-                    <BarChart data={campaignFunnel}>
-                      <CartesianGrid stroke="rgba(148,163,184,.22)" vertical={false} />
-                      <XAxis dataKey="stage" tickLine={false} />
-                      <YAxis tickLine={false} width={42} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#f97316" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <CardContent>
+                  <FunnelChart />
                 </CardContent>
               </Card>
 
@@ -300,17 +361,8 @@ export function MarketingOSDashboard() {
                   <CardTitle>Sprint Progress</CardTitle>
                   <Badge tone="warning">71%</Badge>
                 </CardHeader>
-                <CardContent className="h-72">
-                  <ResponsiveContainer height="100%" width="100%">
-                    <RePieChart>
-                      <Pie data={sprintProgress} dataKey="value" innerRadius={58} outerRadius={90} paddingAngle={3}>
-                        {sprintProgress.map((entry, index) => (
-                          <Cell key={entry.name} fill={pieColors[index % pieColors.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </RePieChart>
-                  </ResponsiveContainer>
+                <CardContent>
+                  <SprintDonut />
                 </CardContent>
               </Card>
             </div>
